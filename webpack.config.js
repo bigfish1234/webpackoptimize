@@ -1,13 +1,16 @@
 const path = require('path');
+const webpack = require('webpack');
+
 const {BundleAnalyzerPlugin} = require('webpack-bundle-analyzer');  // 文件体积监控，分析打包体积
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const webpack = require('webpack');
-const OptimizeCssAssetsWebpackPlugin = require('optimize-css-assets-webpack-plugin');
-const TerserPlugin = require('terser-webpack-plugin');
-
+const OptimizeCssAssetsWebpackPlugin = require('optimize-css-assets-webpack-plugin'); // 优化和压缩css资源
+const TerserPlugin = require('terser-webpack-plugin'); // 优化和压缩js资源
 // 提取css成单独的文件，然后去除无用的css并进行压缩
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const { PurgeCSSPlugin } = require('purgecss-webpack-plugin');
+const ESLintPlugin = require('eslint-webpack-plugin');
+
+
 const glob = require('glob');
 const PATHS = {
   src: path.resolve(__dirname, 'src')
@@ -28,6 +31,11 @@ module.exports = {
     // 1.2 取别名
     alias: {
       "@": path.resolve(__dirname,'src')
+    }
+  },
+  resolveLoader: {
+    alias: {
+      'uppercase-loader': path.resolve(__dirname, 'loader/uppercase-loader.js')
     }
   },
   module: {
@@ -52,6 +60,11 @@ module.exports = {
       {
         test: /\.less$/,
         use: ['cache-loader',MiniCssExtractPlugin.loader, 'css-loader', 'less-loader']
+      },
+      // 自定义loader
+      {
+        test: /\.txt$/,
+        use: ['uppercase-loader']
       }
     ]
   },
@@ -85,12 +98,31 @@ module.exports = {
     // 设置全局变量（编译阶段使用的全局变量，浏览器运行只是值），所有模块都能访问得到
     new webpack.DefinePlugin({
       "ENVIROMENT": JSON.stringify('production')
+    }),
+    new ESLintPlugin({
+      extensions: ['js', 'jsx', 'ts', 'tsx'], // 指定哪些文件类型应该被ESLint处理
+      exclude: ['node_modules'],
     })
   ],
   optimization: {
     minimize: true,
+    splitChunks: {
+      chunks: 'all',
+      minSize: 5120000,
+      maxSize: 10240000,
+      cacheGroups: {
+        styles: {
+          name: 'styles',
+          test: (m) => m.constructor.name === 'CssModule',
+          chunks: 'all',
+          minChunks: 1,
+          enforce: true,
+        },
+      },
+    },
     minimizer: [
       new TerserPlugin()
-    ]
+    ],
+    usedExports: true, // 仅导出有用模块
   }
 }
