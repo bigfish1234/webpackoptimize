@@ -14,7 +14,7 @@ const PATHS = {
 }
 
 module.exports = {
-  mode:'development',
+  mode:'production',
   entry:{
     main: './src/index.js'
   },
@@ -81,6 +81,10 @@ module.exports = {
     // 净化src文件下的所有文件
     new PurgeCSSPlugin({
       paths: glob.sync(`${PATHS.src}/**/*`, {nodir: true})
+    }),
+    // 设置全局变量（编译阶段使用的全局变量，浏览器运行只是值），所有模块都能访问得到
+    new webpack.DefinePlugin({
+      "ENVIROMENT": JSON.stringify('production')
     })
   ],
   optimization: {
